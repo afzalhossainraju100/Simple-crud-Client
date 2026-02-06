@@ -1,27 +1,36 @@
 import React from "react";
 
 const Users = () => {
-  const handleAddUser = (e) => {
+  const handleAddUser = async (e) => {
     e.preventDefault();
     const form = e.target;
     const name = form.name.value;
     const email = form.email.value;
     const newUser = { name, email };
     console.log(newUser);
-    form.reset();
 
     // save this user data to the database via server
-    fetch("http://localhost:3000/users", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(newUser),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("after saving", data);
+    try {
+      const res = await fetch("http://localhost:3000/users", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(newUser),
       });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Server error:", res.status, errorText);
+        return;
+      }
+
+      const data = await res.json();
+      console.log("after saving", data);
+      form.reset();
+    } catch (error) {
+      console.error("Network error:", error);
+    }
   };
 
   return (
