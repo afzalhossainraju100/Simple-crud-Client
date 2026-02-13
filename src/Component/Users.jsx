@@ -1,47 +1,74 @@
-import React from "react";
+import React, { use, useState } from "react";
+import { Link } from "react-router";
 
-const Users = () => {
-  const handleAddUser = async (e) => {
+const Users = ({ userPromise }) => {
+  const initialUsers = use(userPromise);
+  const [users, setUsers] = useState(initialUsers);
+
+  const handleAddUser = (e) => {
     e.preventDefault();
-    const form = e.target;
-    const name = form.name.value;
-    const email = form.email.value;
+    const name = e.target.name.value;
+    const email = e.target.email.value;
+    console.log(name, email);
     const newUser = { name, email };
-    console.log(newUser);
 
-    // save this user data to the database via server
-    try {
-      const res = await fetch("http://localhost:3000/users", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(newUser),
+    // save this user data to the database (via server)
+    fetch("http://localhost:3000/users", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(newUser),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("after saving user", data);
+        if (data.insertedId) {
+          newUser._id = data.insertedId;
+          const newUsers = [...users, newUser];
+          setUsers(newUsers);
+          alert("users added successfully");
+          e.target.reset();
+        }
       });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Server error:", res.status, errorText);
-        return;
-      }
-
-      const data = await res.json();
-      console.log("after saving", data);
-      form.reset();
-    } catch (error) {
-      console.error("Network error:", error);
-    }
+  };
+  const handleDeleteUser = (id) => {
+    console.log("delete a user", id);
+    fetch(`http://localhost:3000/users/${id}`, {
+      method: "DELETE",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("after delete", data);
+        if (data.deletedCount) {
+          alert("deleted successfully");
+          const remaining = users.filter((user) => user._id !== id);
+          setUsers(remaining);
+        }
+      });
   };
 
   return (
     <div>
+      <h3>Users: {users.length}</h3>
       <form onSubmit={handleAddUser}>
-        <input type="text" name="name" placeholder="Name" />
+        <input type="text" name="name" id="" />
         <br />
-        <input type="email" name="email" placeholder="Enter E-mail" />
+        <input type="email" name="email" id="" />
         <br />
-        <input type="submit" value="Submit" />
+        <input type="submit" value="Add User" />
       </form>
+      <p>----------------</p>
+      <div className=" border-2 border-red-500">
+        {users.map((user) => (
+          <p key={user._id}>
+            {user.name} : {user.email}
+            <Link to={`/users/${user._id}`}>Details</Link>
+            <Link to={`/update/${user._id}`}>Edit</Link>
+            <button onClick={() => handleDeleteUser(user._id)}>x</button>
+          </p>
+        ))}
+      </div>
     </div>
   );
 };
